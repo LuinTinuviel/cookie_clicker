@@ -1,6 +1,12 @@
+import shutil
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from time import time, sleep
+from datetime import datetime
+from os import path
+from shutil import copy
 from random import choice
 import chromedriver_autoinstaller
 
@@ -74,7 +80,63 @@ def buy_upgradess():
         else:
             print(f"Upgrade bought")
 
+def save_game():
+    try:
+        # go to options
+        driver.find_element(By.ID, "prefsButton").click()
+        sleep(5)
+        # open export
+        driver.find_element(By.CSS_SELECTOR, "div > div > div:nth-child(4) > a:nth-child(1)").click()
+        sleep(5)
+        save_str = driver.find_element(By.CSS_SELECTOR, "#textareaPrompt").text
+        if save_str:
+            if path.exists("save_data/save.txt"):
+                shutil.copy2("save_data\\save.txt", f"save_data\\save_{datetime.now().strftime('%m_%d_%Y_%H_%M_%S')}.txt")
+            with open("save_data/save.txt", 'w') as file:
+                file.write(save_str)
+        driver.find_element(By.CSS_SELECTOR, "#promptContent > div.optionBox").click()
+        sleep(1)
+        # close options
+        driver.find_element(By.CSS_SELECTOR, "div.close.menuClose").click()
+    except Exception as e:
+        print(f"Could not save data:\n{e}")
+
+def load_game():
+    try:
+        # open import
+        driver.find_element(By.CSS_SELECTOR, "body").send_keys(Keys.CONTROL + "O")
+        sleep(3)
+        load_box = driver.find_element(By.CSS_SELECTOR, "#textareaPrompt")
+        if load_box:
+            if path.exists("save_data/save.txt"):
+                with open("save_data/save.txt", 'r') as file:
+                    save_str = file.read()
+                    load_box.send_keys(save_str)
+        driver.find_element(By.CSS_SELECTOR, "#promptOption0").click()
+        sleep(1)
+    except Exception as e:
+        print(f"Could not load data:\n{e}")
+
 driver = launchBrowser()
+sleep(5)
+
+# Select language:
+driver.find_element(By.ID, "langSelect-EN").click()
+sleep(5)
+
+# Disable short numbers
+try:
+    driver.find_element(By.ID, "prefsButton").click()
+    sleep(5)
+    # disable fancy numbers
+    driver.find_element(By.ID, "formatButton").click()
+    sleep(5)
+    # close options
+    driver.find_element(By.CSS_SELECTOR, "div.close.menuClose").click()
+except Exception as e:
+    print(f"Could not close fancy numbers:\n{e}")
+
+load_game()
 
 cookie = driver.find_element(By.ID, "bigCookie")
 money = driver.find_element(By.ID, "cookies")
@@ -87,22 +149,6 @@ last_buy = time()
 
 # last_buy_diff = 4
 last_buy_diff = 6940
-
-# Disable short numbers
-try:
-    # go to options
-    sleep(10)
-    driver.find_element(By.ID, "prefsButton").click()
-    sleep(5)
-    # disable fancy numbers
-    driver.find_element(By.ID, "formatButton").click()
-    sleep(5)
-    # close options
-    driver.find_element(By.CSS_SELECTOR, "div.close.menuClose").click()
-except Exception as e:
-    print(f"Could not close fancy numbers:\n{e}")
-
-input("load save")
 
 while True:
     try:
@@ -129,6 +175,8 @@ while True:
         bought_item = buy_products()
 
         last_buy = time()
+
+        save_game()
 
     if time() > timeout:
         print(f"Cookies per second: {cookies_per_second}")
